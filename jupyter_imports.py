@@ -20,7 +20,7 @@ if p not in sys.path:
 	sys.path.append(p)
 
 # And standard list of subdirectories
-for d in ["linear", "prelim", "utils"]:
+for d in ["linear", "prelim", "utils", "kerasmodels"]:
 	if 'p\\%s' % d not in sys.path:
 		sys.path.append('p\\%s' % d)
 
