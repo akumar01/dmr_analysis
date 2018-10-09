@@ -1,5 +1,6 @@
 import time
 import numpy as np
+from numpy.linalg import pinv
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.metrics import r2_score
@@ -10,7 +11,7 @@ from scipy.stats import pearsonr
 import pdb, math
 
 # Do vanilla ridge regression on a single electrode for average high gamma channel
-def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[1]):
+def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[5]):
 	
 	# Sweep over a range of regularization strength and use cross-validation 
 	# to select the best one
@@ -117,6 +118,55 @@ def search_params(stim, resp):
 		plot_STRF(rmax, delays[i], 'Delay: %f, alpha: %f r2: %f'
 			% (delays[i], alphas[np.argmax(mean_cv_score)], r2scores[i]), i)
 	return r2scores
+
+'''normalized reverse correlation method as described in 
+Estimating spatio-temporal receptive fields of auditory and visual neurons from 
+their responses to natural stimuli.
+
+and
+
+Estimating sparse spectro-temporal receptive fields with natural stimuli.'''
+# Threshold: Proportion of the singular values to retain. The smallest
+# (1 - threshold) proportion of singular values will be discarded
+def nrc(x, y, threshold, approach = 1):
+	# Iterate over data points and average together to find the stimulus
+	# autocorrelation and stimulus-response cross correlation matricies 
+	# Assumes stimulus spectrogram is flattened
+	
+	# Approach 1: Average together the matricies and then calculate h
+	if approach == 1:
+		Css = np.zeros((x.shape[1], x.shape[1]))
+		Csr = np.zeros(x.shape[1])
+		for i in range(y.size):		
+			start_time = time.time()
+			if (i % 100) == 0:
+				print('%d/%d\n' % (i * 100, y.size))
+			# Flip the stimulus so that data points that are most recent to 
+			# the recorded response come first
+			Css += np.outer(np.flip(x[i, :]), np.flip(x[i, :]))
+			Csr += y[i] * np.flip(x[i, :])
+			print("---%s seconds---" % (time.time() - start_time))
+		Css *= 1/y.size
+		Csr *= 1/y.size
+		# Convert threshold, which is a fraction of the response to keep, to
+		# a numerical value
+		_, s, _ = np.svd(Css)
+		s = np.sort(s)
+		s = s[:math.ceil(threshold * s.size)]
+		cutoff = s[:-1]
+		h = pinv(Css, cutoff) @ Csr
+
+		# Approach 2: Calculate h for each data point and then average together 
+		# h at the end
+	elif approach == 2:
+		h = np.zeros(y.size)
+		for i in range(y.size):
+			Css = np.outer(np.flip(x[i, :]), np.flip(x[i, :]))
+			Csr = y[i] * np.flip(x[i, :])
+			h += pinv(Css, threshold) @ Csr
+		h *= 1/y.size
+
+	return h
 
 # Plot the STRF derived by the model (sklearn object)
 def plot_STRF(model, delay_time, title, fname):

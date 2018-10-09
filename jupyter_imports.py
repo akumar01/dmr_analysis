@@ -28,3 +28,4 @@ for d in ["linear", "prelim", "utils", "kerasmodels"]:
 from utils import preprocess
 from utils import process
 from utils import misc 
+from linear import linear_models

@@ -32,7 +32,7 @@ def bin_data(binsize, data):
 		binned_data = np.zeros(math.floor(data.size/2))
 		binned_indices = np.zeros(binned_data.size)
 		for i in range(binned_data.size):
-			binned_data[i] = np.mean(data[2*i:min(2*i + 1, data.size)])
+			binned_data[i] = np.mean(data[2*i:min(2*i + 2, data.size)])
 			binned_indices[i] = 2 * i
 	else:
 		# Implement this when needed
@@ -53,7 +53,6 @@ def split_data(stim, resp, binsize, delay_time=50, val=False):
 	# for a period of time half the window size used for z-scoring
 	# (ii) Physically, neurons will have unpredictable responses to sudden onset
 	# and termination of stimulus
-
 	lead_padding_length = count_leading_zeros(resp)
 	trail_padding_length = count_leading_zeros(np.flip(resp, 0))
 	# Assumes a 100 Hz sampling rate
@@ -67,6 +66,8 @@ def split_data(stim, resp, binsize, delay_time=50, val=False):
 	# doesn't exist
 
 	resp = resp[delay_time:]
+	stim_org = stim.copy()
+	resp_org = resp.copy()
 
 	train_split = 0.8
 	if val:
@@ -114,7 +115,6 @@ def split_data(stim, resp, binsize, delay_time=50, val=False):
 	test_stim = np.zeros((test_resp.size, stim.shape[0], delay_time))
 
 	for i in range(test_resp.size):
-		test_stim[i, :, :] = stim[:, int(binned_indices[train_inds[i]]):int(binned_indices[train_inds[i]] + delay_time)]
-
+		test_stim[i, :, :] = stim[:, int(binned_indices[test_inds[i]]):int(binned_indices[test_inds[i]] + delay_time)]
 	Pack = namedtuple('Pack', ['train_resp', 'val_resp', 'test_resp', 'train_stim', 'val_stim', 'test_stim'], verbose = False)
 	return Pack(train_resp, val_resp, test_resp, train_stim, val_stim, test_stim)
