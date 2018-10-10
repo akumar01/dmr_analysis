@@ -1,18 +1,24 @@
 import time
 import numpy as np
-from numpy.linalg import pinv
+from numpy.linalg import pinv, svd
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
 from utils.process import split_data, flatten_spct
-from utils.misc import get_fig_path
+from utils.misc import get_fig_path, check_nan
 from scipy.stats import pearsonr
 import pdb, math
 
 # Do vanilla ridge regression on a single electrode for average high gamma channel
 def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[5]):
-	
+	# Always check for NaN before running
+	assert not check_nan(xtrain)
+	assert not check_nan(ytrain)
+	# Always check for NaN before running
+	assert not check_nan(xtest)
+	assert not check_nan(ytest)
+
 	# Sweep over a range of regularization strength and use cross-validation 
 	# to select the best one
 	mean_cv_score = np.zeros(len(alphas))
@@ -39,6 +45,13 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[5]):
 # Boosting as described in "Estimating sparse spectro-temporal receptive fields with
 # natural stimuli"
 def boosting(x, y, xtest, ytest, n_iterations):
+	# Always check for NaN before running
+	assert not check_nan(x)
+	assert not check_nan(y)
+	# Always check for NaN before running
+	assert not check_nan(xtest)
+	assert not check_nan(ytest)
+
 	# Reserve a fraction of the training data to determine an early stopping point
 	xtrain, xval, ytrain, yval = train_test_split(x, y, test_size = 0.05)
 	# step size is calculated according to the heuristic 1/50 * sqrt(var(r(t))/ var(s(x, t)))
@@ -101,6 +114,11 @@ def search_params(stim, resp):
 		dat = split_data(stim, resp, 2, delays[i])
 		xtrain = flatten_spct(dat.train_stim)
 		ytrain = dat.train_resp
+	
+		# Always check for NaN before running
+		assert not check_nan(xtrain)
+		assert not check_nan(ytrain)
+
 		mean_cv_score = np.zeros(len(alphas))
 		std_cv_score = np.zeros(len(alphas))
 		for j in range(len(alphas)):
@@ -129,6 +147,10 @@ Estimating sparse spectro-temporal receptive fields with natural stimuli.'''
 # Threshold: Proportion of the singular values to retain. The smallest
 # (1 - threshold) proportion of singular values will be discarded
 def nrc(x, y, threshold, approach = 1):
+	# Always check for NaN before running
+	assert not check_nan(x)
+	assert not check_nan(y)
+
 	# Iterate over data points and average together to find the stimulus
 	# autocorrelation and stimulus-response cross correlation matricies 
 	# Assumes stimulus spectrogram is flattened
@@ -138,23 +160,30 @@ def nrc(x, y, threshold, approach = 1):
 		Css = np.zeros((x.shape[1], x.shape[1]))
 		Csr = np.zeros(x.shape[1])
 		for i in range(y.size):		
-			start_time = time.time()
+			# Always check for NaN before running
+			assert not check_nan(x)
+			assert not check_nan(y)
+
+#			start_time = time.time()
 			if (i % 100) == 0:
-				print('%d/%d\n' % (i * 100, y.size))
+				print('%d/%d\n' % (i, y.size))
 			# Flip the stimulus so that data points that are most recent to 
 			# the recorded response come first
 			Css += np.outer(np.flip(x[i, :]), np.flip(x[i, :]))
 			Csr += y[i] * np.flip(x[i, :])
-			print("---%s seconds---" % (time.time() - start_time))
+#			print("---%s seconds---" % (time.time() - start_time))
 		Css *= 1/y.size
 		Csr *= 1/y.size
 		# Convert threshold, which is a fraction of the response to keep, to
 		# a numerical value
-		_, s, _ = np.svd(Css)
+		_, s, _ = svd(Css)
 		s = np.sort(s)
 		s = s[:math.ceil(threshold * s.size)]
-		cutoff = s[:-1]
+		cutoff = s[0]
 		h = pinv(Css, cutoff) @ Csr
+		# Always check for NaN before running
+		assert not check_nan(x)
+		assert not check_nan(y)
 
 		# Approach 2: Calculate h for each data point and then average together 
 		# h at the end

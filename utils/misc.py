@@ -14,6 +14,9 @@ def get_data_path():
 def get_fig_path():
 	return os.path.abspath('../figures')
 
+# Check if the array contains any NaN values
+def check_nan(x):
+	return np.isnan(np.sum(x))
 
 # Count consecutives zeros at the beginning of an arra
 def count_leading_zeros(vals):

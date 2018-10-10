@@ -13,12 +13,39 @@ import time
 from utils.preprocess import get_data_path
 from utils.misc import count_leading_zeros
 import sklearn
+from sklearn.metrics import r2_score
 
+# Takes a (n freq bins)*delay_time x 1 derived response kernel, reshapes it, and applies it to
+# the spectrogram samples x
+# x has dimensions (n_samples, # freq bins, delay time)
+def predict_response(h, x):
+	x = flatten_spct(x)
+	return x @ h
+
+def evaluate_strf(xtest, ytest, h):
+	y_pred = predict_response(h, xtest)
+	return r2_score(ytest, y_pred)
 
 # Flatten spectrogram for linear regression
 # This takes in the output of split_data
 def flatten_spct(spct):
-	return np.reshape(spct, (spct.shape[0], spct.shape[1] * spct.shape[2]))
+	reshaped_spct = spct.copy()
+	return np.reshape(reshaped_spct, (spct.shape[0], spct.shape[1] * spct.shape[2]))
+
+# Take the logarithm of the spectrogram
+# Input dimensions are (n samples, # freq bins, delay time)
+# Reshape outputs the flattened version. Turn this off to
+# return a 2D image
+def compress_spct(spct, reshape = 1):
+
+	raw_dims = spct.shape
+	spct = flatten_spct(spct)
+	for i in range(spct.shape[0]):
+		spct[i, :] = np.log(spct[i, :])
+	if reshape:
+		return spct
+	else:
+		return np.reshape(spct, raw_dims)
 
 # Bin response data according to binsize
 # Uses a simple moving average filter
@@ -46,7 +73,7 @@ def bin_data(binsize, data):
 # Bin size - how much to bin the response by
 # Delay time give the length of stimulus preceeding the response to associate with the particular
 # data point, in units of samples
-def split_data(stim, resp, binsize, delay_time=50, val=False):
+def split_data(stim, resp, binsize, train_split = 0.8, delay_time=50, val=False, val_split = 0.1):
 
 	# Cutoff the first few and last few seconds of the stimulus for two reasons:
 	# (i) If using a moving z_score, there may be leading and trailing zeros
@@ -69,10 +96,7 @@ def split_data(stim, resp, binsize, delay_time=50, val=False):
 	stim_org = stim.copy()
 	resp_org = resp.copy()
 
-	train_split = 0.8
-	if val:
-		val_split = 0.1
-	else:
+	if not val:
 		val_split = 0
 	test_split = 1 - train_split - val_split
 
