@@ -13,10 +13,13 @@ from utils.misc import get_data_path, count_leading_zeros
 # Align the data and stimulus using the mark track
 def align(stim, resp):
 	data_path = get_data_path()
-	io = NWBHDF5IO('%s/R32_B8.nwb' % data_path)
-	nwbfile = io.read()
-	mark = nwbfile.stimulus['recorded_mark'].data[:]
-
+	try:
+		io = NWBHDF5IO('%s/R32_B8.nwb' % data_path)
+		nwbfile = io.read()
+		mark = nwbfile.stimulus['recorded_mark'].data[:]
+	except:
+		mark = loadmat('%s/mark.mat' % data_path)
+		mark = mark['mark']
 	# Align the DMR with the response
 
 	# First downsample the mark to 100 Hz

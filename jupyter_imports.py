@@ -12,7 +12,7 @@ import sys, os
 
 # Find the root directory of the nse project
 parent_path, current_dir = os.path.split(os.path.abspath('.'))
-while current_dir != 'analysis':
+while current_dir not in ['analysis', 'nse']:
 	parent_path, current_dir = os.path.split(parent_path)
 p = os.path.join(parent_path, current_dir)
 # Add analysis
