@@ -1,4 +1,4 @@
-import time
+import time, datetime
 import numpy as np
 from numpy.linalg import pinv, svd
 from sklearn.linear_model import Ridge
@@ -9,7 +9,7 @@ from utils.process import split_data, flatten_spct
 from utils.misc import get_fig_path, check_nan
 from scipy.stats import pearsonr
 import pdb, math
-import os, datetime
+import os
 
 # Do vanilla ridge regression on a single electrode for average high gamma channel
 def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[5]):
@@ -26,7 +26,7 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[5]):
 	std_cv_score = np.zeros(len(alphas))
 	for i, alpha in enumerate(alphas):
 		start_time = time.time()
-		r = Ridge(alpha, fit_intercept = False)
+		r = Ridge(alpha, fit_intercept = True, normalize = True)
 		cv_scores = cross_val_score(r, xtrain, ytrain, cv = 5)
 		mean_cv_score[i] = np.mean(cv_scores)
 		std_cv_score[i] = np.std(std_cv_score)
@@ -106,13 +106,16 @@ def calc_mse(x, y):
 	return 1/x.size * (x - y) @ (x - y)
 
 # Vary over time delays and regularization strengths
-def search_params(stim, resp):
+def search_ridge_params(stim, resp):
 	# Assuming 100 Hz sampling rate
-	delays = np.array([50, 100, 150])
-	alphas = np.array([0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2])
+	delays = np.array([50])
+	alphas = np.array([10, 12, 14, 16, 18, 20])
 	r2scores = np.zeros(len(delays))
+	mean_cv_score = np.zeros((len(delays), len(alphas)))
+	std_cv_score = np.zeros((len(delays), len(alphas)))
+	in_sample_r = np.zeros((len(delays), len(alphas)))
 	for i in range(len(delays)):
-		dat = split_data(stim, resp, 2, delays[i])
+		dat = split_data(stim, resp, 2, 0.8, delays[i])
 		xtrain = flatten_spct(dat.train_stim)
 		ytrain = dat.train_resp
 	
@@ -120,23 +123,25 @@ def search_params(stim, resp):
 		assert not check_nan(xtrain)
 		assert not check_nan(ytrain)
 
-		mean_cv_score = np.zeros(len(alphas))
-		std_cv_score = np.zeros(len(alphas))
 		for j in range(len(alphas)):
 			start_time = time.time()
 			r = Ridge(alphas[j], normalize = True)
 			cv_scores = cross_val_score(r, xtrain, ytrain, cv = 5)
-			mean_cv_score[j] = np.mean(cv_scores)
-			std_cv_score[j] = np.std(std_cv_score)
+			mean_cv_score[i, j] = np.mean(cv_scores)
+			std_cv_score[i, j] = np.std(std_cv_score)
+			r.fit(xtrain, ytrain)
+			plot_STRF(r, delays[i], 'Delay: %f, alpha: %f r2: %f'
+			% (delays[i], alphas[np.argmax(mean_cv_score[i, :])], mean_cv_score[i, j]), '%d_%d' % (i, j))
+
 			print("---%s seconds---" % (time.time() - start_time))
+
+
 		rmax = Ridge(alphas[np.argmax(mean_cv_score)], normalize = True)
 		rmax.fit(xtrain, ytrain)
 		xtest = flatten_spct(dat.test_stim)
 		ypred = rmax.predict(xtest)
 		r2scores[i] = r2_score(dat.test_resp, ypred)
-		plot_STRF(rmax, delays[i], 'Delay: %f, alpha: %f r2: %f'
-			% (delays[i], alphas[np.argmax(mean_cv_score)], r2scores[i]), i)
-	return r2scores
+	return r2scores, in_sample_r
 
 '''normalized reverse correlation method as described in 
 Estimating spatio-temporal receptive fields of auditory and visual neurons from 
@@ -204,7 +209,7 @@ def plot_STRF(model, delay_time, title, fname):
 	plt.pcolor(weights)
 	plt.title(title)
 	figpath = get_fig_path()
-	figdir = os.path.join(figpath, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
-	os.makedirs(mydir)
-	plt.savefig('%s/STRF/%s.png' % (figdir, fname))
+	figdir = os.path.join('%s/STRF' % figpath, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+	os.makedirs(figdir)
+	plt.savefig('%s/%s.png' % (figdir, fname))
 	plt.close()
