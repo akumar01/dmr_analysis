@@ -15,6 +15,15 @@ from utils.misc import count_leading_zeros
 import sklearn
 from sklearn.metrics import r2_score
 
+# Remove the DC component of the stimulus
+# stim has dimensions (nsamples, # freq bins, delay time)
+def remove_DC(stim):
+	mean_subtracted_stim = np.zeros((stim.shape[0], stim.shape[1] - 2, stim.shape[2]))
+	# Not sure if it's the first frequency bin or the last one
+	for i in range(stim.shape[0]):
+		mean_subtracted_stim = stim[:, 1:-1, :]
+	return mean_subtracted_stim
+
 # Takes a (n freq bins)*delay_time x 1 derived response kernel, reshapes it, and applies it to
 # the spectrogram samples x
 # x has dimensions (n_samples, # freq bins, delay time)

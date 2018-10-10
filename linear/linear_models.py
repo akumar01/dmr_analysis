@@ -9,6 +9,7 @@ from utils.process import split_data, flatten_spct
 from utils.misc import get_fig_path, check_nan
 from scipy.stats import pearsonr
 import pdb, math
+import os, datetime
 
 # Do vanilla ridge regression on a single electrode for average high gamma channel
 def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[5]):
@@ -25,7 +26,7 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[5]):
 	std_cv_score = np.zeros(len(alphas))
 	for i, alpha in enumerate(alphas):
 		start_time = time.time()
-		r = Ridge(alpha, fit_intercept = True, normalize = True)
+		r = Ridge(alpha, fit_intercept = False)
 		cv_scores = cross_val_score(r, xtrain, ytrain, cv = 5)
 		mean_cv_score[i] = np.mean(cv_scores)
 		std_cv_score[i] = np.std(std_cv_score)
@@ -203,5 +204,7 @@ def plot_STRF(model, delay_time, title, fname):
 	plt.pcolor(weights)
 	plt.title(title)
 	figpath = get_fig_path()
-	plt.savefig('%s/STRF/%s.png' % (figpath, fname))
+	figdir = os.path.join(figpath, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+	os.makedirs(mydir)
+	plt.savefig('%s/STRF/%s.png' % (figdir, fname))
 	plt.close()
