@@ -1,2 +1,5 @@
 figures/
 data/
+__pycache__/
+*.ipython
+.ipynb_checkpoints/
