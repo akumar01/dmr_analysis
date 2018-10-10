@@ -15,13 +15,13 @@ from utils.misc import count_leading_zeros
 import sklearn
 from sklearn.metrics import r2_score
 
-# Remove the DC component of the stimulus
+# Remove certain frequency channels from the stimulus (e.g. DC component)
 # stim has dimensions (nsamples, # freq bins, delay time)
-def remove_DC(stim):
-	mean_subtracted_stim = np.zeros((stim.shape[0], stim.shape[1] - 2, stim.shape[2]))
-	# Not sure if it's the first frequency bin or the last one
+# channels: list
+def remove_channels(stim, ncutoff):
+	mean_subtracted_stim = np.zeros((stim.shape[0], stim.shape[1] - ncutoff, stim.shape[2]))
 	for i in range(stim.shape[0]):
-		mean_subtracted_stim = stim[:, 1:-1, :]
+		mean_subtracted_stim = stim[:, ncutoff:, :]
 	return mean_subtracted_stim
 
 # Takes a (n freq bins)*delay_time x 1 derived response kernel, reshapes it, and applies it to

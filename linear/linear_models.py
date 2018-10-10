@@ -26,7 +26,7 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[5]):
 	std_cv_score = np.zeros(len(alphas))
 	for i, alpha in enumerate(alphas):
 		start_time = time.time()
-		r = Ridge(alpha, fit_intercept = True, normalize = True)
+		r = Ridge(alpha, fit_intercept = True, normalize=True)
 		cv_scores = cross_val_score(r, xtrain, ytrain, cv = 5)
 		mean_cv_score[i] = np.mean(cv_scores)
 		std_cv_score[i] = np.std(std_cv_score)
