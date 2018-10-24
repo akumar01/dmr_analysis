@@ -6,7 +6,7 @@ from scipy.signal import decimate
 from scipy.integrate import simps
 from pynwb import NWBHDF5IO
 from matplotlib import pyplot as plt
-
+from htkfile import HTKFile
 
 # Return the folder in which store data
 def get_data_path():
@@ -27,6 +27,12 @@ def count_leading_zeros(vals):
 		else:
 			return count
 	return count
+
+# Read the .htk file format
+def read_htk(path):
+    file = HTKFile(path)
+    data = file.read_data()
+    return data, file.sample_rate
 
 # Calculate the mean and standard deviation of the autocorrelation width and the inflection
 # point delay across all electrodes
