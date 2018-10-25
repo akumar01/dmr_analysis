@@ -33,12 +33,13 @@ def norm_spct(stim):
 
 # Remove certain frequency channels from the stimulus (e.g. DC component)
 # stim has dimensions (nsamples, # freq bins, delay time)
-# channels: list
+# ncutoff: two element tuple of number of channels to rmemove from the start and
+# end
 def remove_channels(stim, ncutoff):
-	mean_subtracted_stim = np.zeros((stim.shape[0], stim.shape[1] - ncutoff, stim.shape[2]))
-	for i in range(stim.shape[0]):
-		mean_subtracted_stim = stim[:, ncutoff:, :]
-	return mean_subtracted_stim
+	truncated_stim = np.zeros((stim.shape[0], stim.shape[1] - ncutoff[0] - 
+								ncutoff[1], stim.shape[2]))
+	truncated_stim = stim[:,ncutoff[0]:stim.shape[1] - ncutoff[1],:]
+	return truncated_stim
 
 # Takes a (n freq bins)*delay_time x 1 derived response kernel, reshapes it, and applies it to
 # the spectrogram samples x

@@ -6,7 +6,7 @@ from scipy.signal import decimate
 from scipy.integrate import simps
 from pynwb import NWBHDF5IO
 from matplotlib import pyplot as plt
-from htkfile import HTKFile
+from utils.htkfile import HTKFile
 
 # Return the folder in which store data
 def get_data_path():

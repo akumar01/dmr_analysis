@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from collections import namedtuple
 import math, pdb, time
 
-from utils.misc import get_data_path, count_leading_zeros
+from utils.misc import get_data_path, count_leading_zeros, read_htk
 
 # Align the data and stimulus using the mark track
 def align(stim, resp):
@@ -28,6 +28,7 @@ def align(stim, resp):
 	end_index = start_index + stim.shape[1]
 
 	resp = resp[start_index:end_index]
+
 	assert resp.size == stim.shape[1]
 
 	return stim, resp
@@ -62,7 +63,7 @@ def process_freq_bands(data, dsample, z_method = 'baseline'):
 
 # Load data one channel at a time and process to keep size loaded into memory
 # manageable
-def get_gamma_from_grid(channels, dsample, z_method, save_file, *filename):
+def get_gamma_from_nwb(channels, dsample, z_method, save_file, *filename):
 	# 128 total electrodes
 	# 29-36 are the indicies of the gamma channels
 	data_path = get_data_path()
@@ -78,6 +79,28 @@ def get_gamma_from_grid(channels, dsample, z_method, save_file, *filename):
 	for i in range(len(channels)):
 		channel = np.array(nwbfile.modules['preprocessed'].data_interfaces['Wvlt_4to1200_54band_CAR1'].electrical_series['Wvlt_ECoG128'].data[:,channels[i],29:36])
 		data[:, i] = process_freq_bands(channel, dsample, z_method)		
+	if save_file:
+		savemat('%s/%s.mat' % (data_path, filename[0]), dict([('data', data)]))
+	return data
+
+# Handle htk files separately
+def get_gamma_from_htk(path, channels, dsample, z_method, save_file, *filename):
+	# 64 total electrodes
+	# 29-36 are indices of the gamma channels
+	data_path = get_data_path()
+
+	data_path = get_data_path()
+	data_path = '%s/%s' % (data_path, path)
+	
+	d1 = read_htk('%s/Wave1.htk' % data_path)[0]
+	raw_shape = d1.shape
+	if dsample:
+		data = np.zeros((math.ceil((raw_shape[0] - 3)/4), len(channels)))
+	else:
+		data = np.zeros((raw_shape[0] - 3, len(channels)))
+	for i in range(len(channels)):
+		channel = read_htk('%s/Wave%d.htk' % (data_path, channels[i]))[0][:, 29:36]
+		data[:, i] = process_freq_bands(channel, dsample, z_method)
 	if save_file:
 		savemat('%s/%s.mat' % (data_path, filename[0]), dict([('data', data)]))
 	return data
@@ -106,8 +129,6 @@ def running_Z_score(data):
 		Z_scored[i] = (data[i] - mean_baseline)/std_baseline
 #		means[i - window_length/2] = mean_baseline
 #		stds[i - window_length] = std_baseline
-
-
 	return Z_scored
 
 # Downsample the data to a 100 Hz sampling rate

@@ -1,6 +1,7 @@
 figures/
 data/
 __pycache__/
+*.pyc
 *.ipython
 .ipynb_checkpoints/
 *.ipynb

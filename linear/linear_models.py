@@ -5,14 +5,14 @@ from sklearn.linear_model import Ridge
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
-from utils.process import split_data, flatten_spct
+from utils.process import split_data, flatten_spct, remove_channels
 from utils.misc import get_fig_path, check_nan
 from scipy.stats import pearsonr
 import pdb, math
 import os
 
 # Do vanilla ridge regression on a single electrode for average high gamma channel
-def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[5]):
+def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[1, 3, 5, 10]):
 	# Always check for NaN before running
 	assert not check_nan(xtrain)
 	assert not check_nan(ytrain)
@@ -31,7 +31,7 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[5]):
 		mean_cv_score[i] = np.mean(cv_scores)
 		std_cv_score[i] = np.std(std_cv_score)
 		print("---%s seconds---" % (time.time() - start_time))
-
+	pdb.set_trace()	
 	# Return the fit with the best mean_cv_score
 	r.fit(xtrain, ytrain)
 	r.predict(xtest)
@@ -107,14 +107,14 @@ def calc_mse(x, y):
 def search_ridge_params(stim, resp):
 	# Assuming 100 Hz sampling rate
 	delays = np.array([50])
-	alphas = np.array([10, 12, 14, 16, 18, 20])
+	alphas = np.array([1, 3, 5, 10, 15, 20, 25])
 	r2scores = np.zeros(len(delays))
 	mean_cv_score = np.zeros((len(delays), len(alphas)))
 	std_cv_score = np.zeros((len(delays), len(alphas)))
 	in_sample_r = np.zeros((len(delays), len(alphas)))
 	for i in range(len(delays)):
 		dat = split_data(stim, resp, 2, 0.8, delays[i])
-		xtrain = flatten_spct(dat.train_stim)
+		xtrain = flatten_spct(remove_channels(dat.train_stim, [3, 3]))
 		ytrain = dat.train_resp
 	
 		# Always check for NaN before running
@@ -136,7 +136,7 @@ def search_ridge_params(stim, resp):
 
 		rmax = Ridge(alphas[np.argmax(mean_cv_score)], normalize = True)
 		rmax.fit(xtrain, ytrain)
-		xtest = flatten_spct(dat.test_stim)
+		xtest = flatten_spct(remove_channels(dat.test_stim, [3, 3]))
 		ypred = rmax.predict(xtest)
 		r2scores[i] = r2_score(dat.test_resp, ypred)
 	return r2scores, in_sample_r
@@ -203,7 +203,7 @@ def nrc(x, y, threshold, approach = 1):
 
 # Plot the STRF derived by the model (sklearn object)
 def plot_STRF(model, delay_time, title, fname):
-	weights = np.reshape(model.coef_, (delay_time, 100))
+	weights = np.reshape(model.coef_, (delay_time, int(model.coef_.size/delay_time)))
 	plt.pcolor(weights)
 	plt.title(title)
 	figpath = get_fig_path()
