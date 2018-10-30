@@ -1,3 +1,4 @@
+
 import numpy as np
 from numpy.linalg import det
 from scipy.io import loadmat, savemat
@@ -38,28 +39,27 @@ def process_freq_bands(data, dsample, z_method = 'baseline'):
 	# recordings being three points longer than the stimulus)
 	data = data[:-3,:]
 
-	# Downsample the data from 400 Hz to 100 Hz
-	if dsample:
-		dd = downsample(data[:, 0])
-		downsampled_data = np.zeros((dd.size, data.shape[1]))
-		downsampled_data[:, 0] = dd	
-		for i in range(1, data.shape[1]):
-			downsampled_data[:, i] = downsample(data[:, i])		
+	# Order of opertions: 1) Average, 2) Downsample, 3) Z-score
+	averaged_data = np.zeros(data.shape[0])
+	averaged_data = np.mean(data, axis  = 1)
 
-		data = downsampled_data
+	if dsample:
+		# Downsample the data from 400 Hz to 100 Hz
+
+		downsampled_data = downsample(averaged_data)
+
 		z_scored_data = np.zeros(downsampled_data.shape)
 
 	else:
-		z_scored_data = np.zeros(data.shape)
-
+		z_scored_data = np.zeros(averaged_data.shape)
+		downsampled_data = averaged_data
 	for i in range(data.shape[1]):
 		if z_method == 'baseline':
-			z_scored_data[:, i] = Z_score(data[:, i])
+			z_scored_data = Z_score(downsampled_data)
 		elif z_method == 'moving':
-			z_scored_data[:, i] = running_Z_score(data[:, i])
+			z_scored_data = running_Z_score(downsampled_data)
 
-	# Average together all frequency bands
-	return np.mean(z_scored_data, axis = 1)
+	return z_scored_data
 
 # Load data one channel at a time and process to keep size loaded into memory
 # manageable
@@ -88,8 +88,6 @@ def get_gamma_from_htk(path, channels, dsample, z_method, save_file, *filename):
 	# 64 total electrodes
 	# 29-36 are indices of the gamma channels
 	data_path = get_data_path()
-
-	data_path = get_data_path()
 	data_path = '%s/%s' % (data_path, path)
 	
 	d1 = read_htk('%s/Wave1.htk' % data_path)[0]
@@ -99,10 +97,10 @@ def get_gamma_from_htk(path, channels, dsample, z_method, save_file, *filename):
 	else:
 		data = np.zeros((raw_shape[0] - 3, len(channels)))
 	for i in range(len(channels)):
-		channel = read_htk('%s/Wave%d.htk' % (data_path, channels[i]))[0][:, 29:36]
+		channel = read_htk('%s/Wave%d.htk' % (data_path, channels[i] + 1))[0][:, 29:36]
 		data[:, i] = process_freq_bands(channel, dsample, z_method)
 	if save_file:
-		savemat('%s/%s.mat' % (data_path, filename[0]), dict([('data', data)]))
+		savemat('%s/%s.mat' % (get_data_path(), filename[0]), dict([('data', data)]))
 	return data
 
 def Z_score(data):

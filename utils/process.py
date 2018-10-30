@@ -15,19 +15,18 @@ from utils.misc import count_leading_zeros
 import sklearn
 from sklearn.metrics import r2_score
 
-# Normalize spectrogram
+# Normalize spectrogram: Log compress and then z score
 def norm_spct(stim):
 	# for i in range(stim.shape[0]):
 	# 	normalized_spectrum[i, :, :] = (stim[i, :, :] -  np.mean(stim[i, :, :]))/np.std(stim[i, :, :])
 
-	# Normalize features across samples
 	stim = flatten_spct(stim)
 	normalized_spectrum = np.zeros(stim.shape)
-	s = np.std(stim, axis = 0)	
-	m = np.mean(stim, axis = 0)
+	normalized_spectrum = np.log(stim)
+	s = np.std(normalized_spectrum, axis = 0)	
+	m = np.mean(normalized_spectrum, axis = 0)
 	for i in range(normalized_spectrum.shape[0]):
-		normalized_spectrum[i, :] = np.divide(stim[i, :] - m, s)
-
+		normalized_spectrum[i, :] = np.divide(normalized_spectrum[i, :] - m, s)
 	return normalized_spectrum
 
 
