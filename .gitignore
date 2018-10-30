@@ -5,3 +5,10 @@ __pycache__/
 *.ipython
 .ipynb_checkpoints/
 *.ipynb
+*.aux
+*.bbl
+*.blg
+*.log
+*.pdf
+*.gz
+*.tex

@@ -6,6 +6,7 @@ from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
 from utils.process import split_data, flatten_spct, remove_channels
+from utils.preprocess import align
 from utils.misc import get_fig_path, check_nan
 from scipy.stats import pearsonr
 import pdb, math
@@ -20,26 +21,48 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[1, 3, 5, 10]):
 	assert not check_nan(xtest)
 	assert not check_nan(ytest)
 
-	# Sweep over a range of regularization strength and use cross-validation 
-	# to select the best one
-	mean_cv_score = np.zeros(len(alphas))
-	std_cv_score = np.zeros(len(alphas))
+	models = []
+	r2_scores = np.zeros(len(alphas))
 	for i, alpha in enumerate(alphas):
 		start_time = time.time()
 		r = Ridge(alpha, fit_intercept = True, normalize = True)
-		cv_scores = cross_val_score(r, xtrain, ytrain, cv = 5)
-		mean_cv_score[i] = np.mean(cv_scores)
-		std_cv_score[i] = np.std(std_cv_score)
+		r.fit(xtrain, ytrain)
+		ypred = r.predict(xtest)
+		r2_scores[i] = r2_score(ytest, ypred)
+		models.append(r)
 		print("---%s seconds---" % (time.time() - start_time))
-	pdb.set_trace()	
-	# Return the fit with the best mean_cv_score
-	r.fit(xtrain, ytrain)
-	r.predict(xtest)
-	ypred = r.predict(xtest)
-	return r, r2_score(ytest, ypred)
 
-# To do:
-# Cross validation
+	return models, r2_scores
+
+
+# Do a ridge regression fit across all electrodes
+def batch_ridge(stim, resp, alpha):
+	rscores = []
+	models = []
+	for i in range(resp.shape[1]):
+		try:
+			s, r = align(stim['spct'], resp[:, i])
+		except Exception as e:
+			pdb.set_trace()
+
+		p = split_data(s, r, 2, train_split = 0.8)
+		xtrain = flatten_spct(remove_channels(p.train_stim, [3, 3]))
+		xtest = flatten_spct(remove_channels(p.test_stim, [3, 3]))
+		ytrain = p.train_resp
+		ytest = p.test_resp
+		model, rscore = ridge_regression(xtrain, ytrain, xtest, ytest, alphas = [5])
+
+		models.append(model)
+		rscores.append(rscore)
+
+	return rscores, models
+
+# Plot a bunch of separate 
+def batch_STRF_plot(models):
+	fig_path = get_fig_path()
+	for i in range(len(models)):
+		plot_STRF(models[i][0], 50, 'Electrode %d' % i, '%s/102418/STRFs' % fig_path, '%d' % i)
+
 
 # Boosting as described in "Estimating sparse spectro-temporal receptive fields with
 # natural stimuli"
@@ -202,12 +225,10 @@ def nrc(x, y, threshold, approach = 1):
 	return h
 
 # Plot the STRF derived by the model (sklearn object)
-def plot_STRF(model, delay_time, title, fname):
+def plot_STRF(model, delay_time, title, figdir, fname):
 	weights = np.reshape(model.coef_, (delay_time, int(model.coef_.size/delay_time)))
 	plt.pcolor(weights)
 	plt.title(title)
-	figpath = get_fig_path()
-	figdir = os.path.join('%s/STRF' % figpath, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
-	os.makedirs(figdir)
+#	figdir = os.path.join('%s/STRF' % figpath, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
 	plt.savefig('%s/%s.png' % (figdir, fname))
 	plt.close()
