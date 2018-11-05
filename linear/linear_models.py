@@ -32,7 +32,7 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, alphas=[1, 3, 5, 10]):
 		models.append(r)
 		print("---%s seconds---" % (time.time() - start_time))
 
-	return models, r2_scores
+	return r2_scores, models
 
 
 # Do a ridge regression fit across all electrodes
@@ -46,8 +46,8 @@ def batch_ridge(stim, resp, alpha):
 			pdb.set_trace()
 
 		p = split_data(s, r, 2, train_split = 0.8)
-		xtrain = flatten_spct(remove_channels(p.train_stim, [3, 3]))
-		xtest = flatten_spct(remove_channels(p.test_stim, [3, 3]))
+		xtrain = norm_spct(remove_channels(p.train_stim, [3, 3]))
+		xtest = norm_spct(remove_channels(p.test_stim, [3, 3]))
 		ytrain = p.train_resp
 		ytest = p.test_resp
 		model, rscore = ridge_regression(xtrain, ytrain, xtest, ytest, alphas = [5])
