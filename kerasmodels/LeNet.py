@@ -8,6 +8,7 @@ from keras.layers.core import Dense
 from keras.datasets import mnist
 from keras.utils import np_utils
 from keras.optimizers import SGD, RMSprop, Adam
+from sklearn.metrics import r2_score
 import numpy as np
 import matplotlib.pyplot as plt
 import pdb
@@ -17,9 +18,10 @@ from scipy.stats import pearsonr
 
 # R2 score metric to use when evaluating model
 def r2score(y_true, y_pred):
-    SS_res =  K.sum(K.square( y_true-y_pred ))
-    SS_tot = K.sum(K.square( y_true - K.mean(y_true) ) )
-    return ( 1 - SS_res/(SS_tot + K.epsilon()) )
+    # SS_res =  K.sum(K.square( y_true-y_pred ))
+    # SS_tot = K.sum(K.square( y_true - K.mean(y_true) ) )
+    # return ( 1 - SS_res/(SS_tot + K.epsilon()) )
+    return r2_score(y_true, y_pred)
 
 #define the ConvNet
 def build(input_shape, npoints):

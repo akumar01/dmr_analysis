@@ -23,10 +23,12 @@ def norm_spct(stim):
 	stim = flatten_spct(stim)
 	normalized_spectrum = np.zeros(stim.shape)
 	normalized_spectrum = np.log(stim)
-	s = np.std(normalized_spectrum, axis = 0)	
-	m = np.mean(normalized_spectrum, axis = 0)
+	s = np.std(normalized_spectrum, axis = 1)	
+	m = np.mean(normalized_spectrum, axis = 1)
+	
 	for i in range(normalized_spectrum.shape[0]):
-		normalized_spectrum[i, :] = np.divide(normalized_spectrum[i, :] - m, s)
+		normalized_spectrum[i, :] = np.divide(normalized_spectrum[i, :] - m[i], s[i])
+	
 	return normalized_spectrum
 
 
