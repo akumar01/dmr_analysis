@@ -134,13 +134,19 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, params):
     
     # Extract Parameters
     params = sess.run(params)
-    y_pred = np.zeros(ytest.shape)
+
+    # In sample performance
+    ypinsamp = np.zeros(ytrain.shape)
+    for i in range(xtrain.shape[0]):
+        ypinsamp[i] = xtrain[i, :] @ params
+    insamp_r2 = r2_score(ytrain, ypinsamp)
+
+    ypoutsamp = np.zeros(ytest.shape)
     for i in range(xtest.shape[0]):
-        y_pred[i] = xtest[i, :] @ params
-
-    r2score = r2_score(ytest, y_pred)
-
-    return params, r2score, loss_vec
+        ypoutsamp[i] = xtest[i, :] @ params
+    outsamp_r2 = r2_score(ytest, ypoutsamp)
+    
+    return params, insamp_r2, outsamp_r2, loss_vec
 
 
 # Iterate through control parameters
@@ -157,9 +163,9 @@ def batch_ridge(xtrain, ytrain, xtest, ytest, save_params = False, **kwargs):
     data = []
     for inst in itertools.product(*values):
         arg_inst = dict(zip(keys, inst))
-        p, r, l = ridge_regression(xtrain, ytrain, xtest, ytest, arg_inst)
+        p, r1, r2, l = ridge_regression(xtrain, ytrain, xtest, ytest, arg_inst)
         if not save_params:
             p = []
-        data.append({'params': p, 'r2_score': r, 'loss_vec': l, 'args': arg_inst})
+        data.append({'params': p, 'insamp_r2': r1, 'outsamp_r2': r2, 'loss_vec': l})
 
     return data
