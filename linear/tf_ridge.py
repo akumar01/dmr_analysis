@@ -4,10 +4,36 @@ import sys
 import numpy as np
 import tensorflow as tf
 from sklearn import datasets
+from sklearn.metrics import r2_score
 from tensorflow.python.framework import ops
 import pdb
+import itertools
 
-def ridge_regression(xtrain, ytrain, xtest, ytest, alpha):
+
+# Modified from 
+# https://github.com/nfmcclure/tensorflow_cookbook/blob/master/
+# 03_Linear_Regression/06_Implementing_Lasso_and_Ridge_Regression/
+# 06_lasso_and_ridge_regression.py
+
+def ridge_regression(xtrain, ytrain, xtest, ytest, params):
+    # Default values:
+    if 'batch_size' in params.keys():
+        batch_size = params['batch_size']
+    else:
+        batch_size = 50
+    if 'lrate' in params.keys():
+        lrate = params['lrate']
+    else:
+        lrate = 0.001
+    if 'alpha' in params.keys():
+        alpha = params['alpha']
+    else:
+        alpha = 1
+    if 'nsteps' in params.keys():
+        nsteps = params['nsteps']
+    else:
+        nsteps = 15000
+
     # Do ridge regression
     regression_type = 'Ridge'
 
@@ -21,8 +47,6 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, alpha):
     # Model Parameters
     ###
 
-    # Declare batch size
-    batch_size = 50
 
     # Initialize placeholders
     x_data = tf.placeholder(shape=[None, xtrain.shape[1]], dtype=tf.float32)
@@ -63,6 +87,7 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, alpha):
         ridge_param = tf.constant(alpha, dtype=tf.float32)
         ridge_loss = tf.norm(params, ord=2)
         loss = tf.expand_dims(tf.add(tf.norm(y_target - model_output, ord=2), tf.multiply(ridge_param, ridge_loss)), 0)       
+
     else:
         print('Invalid regression_type parameter value',file=sys.stderr)
 
@@ -72,7 +97,7 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, alpha):
     ###
 
     # Declare optimizer
-    my_opt = tf.train.GradientDescentOptimizer(0.001)
+    my_opt = tf.train.AdamOptimizer(lrate)
     train_step = my_opt.minimize(loss)
 
     ###
@@ -85,7 +110,7 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, alpha):
 
     # Training loop
     loss_vec = []
-    for i in range(15000):
+    for i in range(nsteps):
 
         # rand_index = np.random.choice(len(x_vals), size=batch_size)
         # rand_x = np.transpose([x_vals[rand_index]])
@@ -100,9 +125,41 @@ def ridge_regression(xtrain, ytrain, xtest, ytest, alpha):
         sess.run(train_step, feed_dict={x_data: xbatch, y_target: ybatch})
         temp_loss = sess.run(loss, feed_dict={x_data: xbatch, y_target: ybatch})
         loss_vec.append(temp_loss[0])
-        if (i+1)%300==0:
-#            print('Step #' + str(i+1) + ' A = ' + str(sess.run(A)) + ' b = ' + str(sess.run(b)))
-            print('Loss = ' + str(temp_loss))
-            print('\n')
+#         if (i+1)%300==0:
+# #            print('Step #' + str(i+1) + ' A = ' + str(sess.run(A)) + ' b = ' + str(sess.run(b)))
+#             print('Loss = ' + str(temp_loss))
+#             print('\n')
 
-    pdb.set_trace()
+    # Need to evaluate the model
+    
+    # Extract Parameters
+    params = sess.run(params)
+    y_pred = np.zeros(ytest.shape)
+    for i in range(xtest.shape[0]):
+        y_pred[i] = xtest[i, :] @ params
+
+    r2score = r2_score(ytest, y_pred)
+
+    return params, r2score, loss_vec
+
+
+# Iterate through control parameters
+def batch_ridge(xtrain, ytrain, xtest, ytest, save_params = False, **kwargs):
+    # Make sure all arguments are iterable
+    for key, val in kwargs.items():
+        if not isinstance(val, list):
+            pdb.set_trace()
+            kwargs[key] = [val]
+
+
+    keys, values = kwargs.keys(), kwargs.values()
+    i = 0
+    data = []
+    for inst in itertools.product(*values):
+        arg_inst = dict(zip(keys, inst))
+        p, r, l = ridge_regression(xtrain, ytrain, xtest, ytest, arg_inst)
+        if not save_params:
+            p = []
+        data.append({'params': p, 'r2_score': r, 'loss_vec': l, 'args': arg_inst})
+
+    return data
