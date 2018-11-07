@@ -16,12 +16,11 @@ import pdb
 from scipy.stats import pearsonr
 
 
-# R2 score metric to use when evaluating model
+# R2 score metric to use when evaluating model - same as sklearn r2_score
 def r2score(y_true, y_pred):
-    # SS_res =  K.sum(K.square( y_true-y_pred ))
-    # SS_tot = K.sum(K.square( y_true - K.mean(y_true) ) )
-    # return ( 1 - SS_res/(SS_tot + K.epsilon()) )
-    return r2_score(y_true, y_pred)
+    SS_res =  K.sum(K.square( y_true-y_pred ))
+    SS_tot = K.sum(K.square( y_true - K.mean(y_true) ) )
+    return ( 1 - SS_res/(SS_tot + K.epsilon()) )
 
 #define the ConvNet
 def build(input_shape, npoints):

@@ -16,18 +16,27 @@ import sklearn
 from sklearn.metrics import r2_score
 
 # Normalize spectrogram: Log compress and then z score
-def norm_spct(stim):
+def norm_spct(stim, flatten = True):
 	# for i in range(stim.shape[0]):
 	# 	normalized_spectrum[i, :, :] = (stim[i, :, :] -  np.mean(stim[i, :, :]))/np.std(stim[i, :, :])
+	if flatten:
+		stim = flatten_spct(stim)
+		normalized_spectrum = np.zeros(stim.shape)
+		normalized_spectrum = np.log(stim)
+		s = np.std(normalized_spectrum, axis = 1)	
+		m = np.mean(normalized_spectrum, axis = 1)
+		
+		for i in range(normalized_spectrum.shape[0]):
+			normalized_spectrum[i, :] = np.divide(normalized_spectrum[i, :] - m[i], s[i])
+	else:
+		normalized_spectrum = np.zeros(stim.shape)
+		normalized_spectrum = np.log(stim)
+		flattened_spct = flatten_spct(normalized_spectrum)
+		s = np.std(flattened_spct, axis = 1)	
+		m = np.mean(flattened_spct, axis = 1)
 
-	stim = flatten_spct(stim)
-	normalized_spectrum = np.zeros(stim.shape)
-	normalized_spectrum = np.log(stim)
-	s = np.std(normalized_spectrum, axis = 1)	
-	m = np.mean(normalized_spectrum, axis = 1)
-	
-	for i in range(normalized_spectrum.shape[0]):
-		normalized_spectrum[i, :] = np.divide(normalized_spectrum[i, :] - m[i], s[i])
+		for i in range(normalized_spectrum.shape[0]):
+			normalized_spectrum[i, :, :] = np.divide(normalized_spectrum[i, :, :] - m[i], s[i])
 	
 	return normalized_spectrum
 
