@@ -27,17 +27,17 @@ def r2score(y_true, y_pred):
 def build(input_shape, npoints):
 	model = Sequential()
 	# CONV => RELU => POOL
-	model.add(Conv2D(20, kernel_size=3, padding="same",
+	model.add(Conv2D(32, kernel_size=4, padding="same",
 	input_shape=input_shape))
 	model.add(Activation("relu"))
 	model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 1), dim_ordering = 'th'))
 	# CONV => RELU => POOL
-	model.add(Conv2D(50, kernel_size=3, border_mode="same"))
+	model.add(Conv2D(16, kernel_size=4, border_mode="same"))
 	model.add(Activation("relu"))
 	model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 1), dim_ordering = 'th'))
 	# Flatten => RELU layers
 	model.add(Flatten())
-	model.add(Dense(500))
+	model.add(Dense(1024))
 	model.add(Activation("relu"))
 
 	# Dense layer for regression

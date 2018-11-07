@@ -5,7 +5,7 @@ from sklearn.linear_model import Ridge
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
-from utils.process import split_data, flatten_spct, remove_channels
+from utils.process import split_data, flatten_spct, remove_channels, norm_spct
 from utils.preprocess import align
 from utils.misc import get_fig_path, check_nan
 from scipy.stats import pearsonr
@@ -45,12 +45,12 @@ def batch_ridge(stim, resp, alpha):
 		except Exception as e:
 			pdb.set_trace()
 
-		p = split_data(s, r, 2, train_split = 0.8)
+		p = split_data(s, r, 2, train_split = 0.8, delay_time = 150)
 		xtrain = norm_spct(remove_channels(p.train_stim, [3, 3]))
 		xtest = norm_spct(remove_channels(p.test_stim, [3, 3]))
 		ytrain = p.train_resp
 		ytest = p.test_resp
-		model, rscore = ridge_regression(xtrain, ytrain, xtest, ytest, alphas = [5])
+		model, rscore = ridge_regression(xtrain, ytrain, xtest, ytest, alphas = [5, 10])
 
 		models.append(model)
 		rscores.append(rscore)

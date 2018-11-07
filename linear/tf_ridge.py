@@ -6,7 +6,7 @@ import tensorflow as tf
 from sklearn import datasets
 from sklearn.metrics import r2_score
 from tensorflow.python.framework import ops
-import pdb
+import pdb, time
 import itertools
 
 
@@ -154,7 +154,6 @@ def batch_ridge(xtrain, ytrain, xtest, ytest, save_params = False, **kwargs):
     # Make sure all arguments are iterable
     for key, val in kwargs.items():
         if not isinstance(val, list):
-            pdb.set_trace()
             kwargs[key] = [val]
 
 
@@ -162,10 +161,11 @@ def batch_ridge(xtrain, ytrain, xtest, ytest, save_params = False, **kwargs):
     i = 0
     data = []
     for inst in itertools.product(*values):
+        start_time = time.time()
         arg_inst = dict(zip(keys, inst))
         p, r1, r2, l = ridge_regression(xtrain, ytrain, xtest, ytest, arg_inst)
         if not save_params:
             p = []
         data.append({'params': p, 'insamp_r2': r1, 'outsamp_r2': r2, 'loss_vec': l})
-
+        print("---%s seconds---" % (time.time() - start_time))
     return data
