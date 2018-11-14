@@ -23,7 +23,7 @@ def r2score(y_true, y_pred):
     return ( 1 - SS_res/(SS_tot + K.epsilon()) )
 
 #define the ConvNet
-def build(input_shape, npoints):
+def buildConv2D(input_shape, npoints):
 	model = Sequential()
 	# CONV => RELU => POOL
 	model.add(Conv2D(32, kernel_size=4, padding="same",
@@ -44,7 +44,21 @@ def build(input_shape, npoints):
 	model.add(Activation("linear"))
 	return model
 
-def run(xtrain, ytrain, xtest, ytest):
+# A dense feedforward network for regression
+def build1DDense(input_shape, npoints):
+	model = Sequential()
+	model.add(Dense(input_shape))
+	model.add(Activation("relu"))
+#	model.add(Dropout(0.5))
+	model.add(Dense(256))
+	model.add(Activation("relu"))
+	model.add(Dropout(0.5))
+	model.add(Dense(npoints))
+	model.add(Activation("linear"))
+	return model
+
+
+def run(xtrain, ytrain, xtest, ytest, model='Conv2D'):
 
 	# network and training
 	NB_EPOCH = 20
@@ -52,38 +66,26 @@ def run(xtrain, ytrain, xtest, ytest):
 	VERBOSE = 1
 	OPTIMIZER = Adam()
 	VALIDATION_SPLIT=0.12
+	if model == 'Conv2D':
+		IMG_ROWS, IMG_COLS = xtrain.shape[1], xtrain.shape[2] # input image dimensions
 
-	IMG_ROWS, IMG_COLS = xtrain.shape[1], xtrain.shape[2] # input image dimensions
+	#	NB_CLASSES = 10 # number of outputs = number of digits
+		INPUT_SHAPE = (1, IMG_ROWS, IMG_COLS)
+		# Xtrain/Xtest needs to have shape (Nexamples, INPUT_SHAPE)
+		xtrain = xtrain[:, np.newaxis, :, :]
+		xtest = xtest[:, np.newaxis, :, :]
 
-#	NB_CLASSES = 10 # number of outputs = number of digits
-	INPUT_SHAPE = (1, IMG_ROWS, IMG_COLS)
-	# # data: shuffled and split between train and test sets
-	# (X_train, y_train), (X_test, y_test) = mnist.load_data()
-	# k.set_image_dim_ordering("th")
-
-	# # consider them as float and normalize
-	# X_train = X_train.astype('float32')
-	# X_test = X_test.astype('float32')
-	# X_train /= 255
-	# X_test /= 255
-
-	# # we need a 60K x [1 x 28 x 28] shape as input to the CONVNET
-	# X_train = X_train[:, np.newaxis, :, :]
-	# X_test = X_test[:, np.newaxis, :, :]
-	# print(X_train.shape[0], 'train samples')
-	# print(X_test.shape[0], 'test samples')
-
-	# # convert class vectors to binary class matrices
-	# y_train = np_utils.to_categorical(y_train, NB_CLASSES)
-	# y_test = np_utils.to_categorical(y_test, NB_CLASSES)
-
-	# Xtrain/Xtest needs to have shape (Nexamples, INPUT_SHAPE)
-	xtrain = xtrain[:, np.newaxis, :, :]
-	xtest = xtest[:, np.newaxis, :, :]
-
-	# initialize the optimizer and model
-	model = build(input_shape=INPUT_SHAPE, npoints=1)
+		# initialize the optimizer and model
+		model = buildConv2D(input_shape=INPUT_SHAPE, npoints = 1)
 	
+	elif model == 'Dense1D':
+
+		model = buildDense1D(input_shape = INPUT_SHAPE, npoints = 1)
+
+	elif model == 'Conv1D':
+
+		model = buildConv1D(input_shape = INPUT_SHAPE, npoints = 1)
+
 	model.compile(loss="mean_squared_error", optimizer=OPTIMIZER,
 	metrics=["accuracy", r2score])
 
